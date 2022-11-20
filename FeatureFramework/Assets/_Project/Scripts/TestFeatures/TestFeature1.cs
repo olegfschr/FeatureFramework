@@ -27,7 +27,7 @@ public class TestFeature1 : Feature, IMessageReceiver
 		{
 			case StartGameMessage:
 				Debug.Log("Start game");
-				MessageProvider.GetMessage<TestMessage>()
+				MessageManager.GetMessage<TestMessage>()
 					.SetData("This is test message", 12, () =>
 					{
 						Debug.Log("Called from FUNCTION Callback");

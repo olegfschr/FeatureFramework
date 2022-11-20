@@ -18,7 +18,7 @@ namespace Features
 		{
 			_features = new List<Feature>();
 			
-			var types = Assembly.GetAssembly(typeof(Feature)).GetTypes();
+			System.Type[] types = Assembly.GetAssembly(typeof(Feature)).GetTypes();
 			foreach (var feature in types)
 			{
 				if (feature.BaseType != typeof(Feature) || feature.IsAbstract) continue;
@@ -89,7 +89,8 @@ namespace Features
 					if (_featuresInitialised == 0)
 					{
 						MessageManager.StopReceivingMessage<OnFeatureInitialisedMessage>(this);
-						MessageProvider.GetMessage<StartGameMessage>().Send();
+						MessageManager.ClearMessageCache<OnFeatureInitialisedMessage>();
+						MessageManager.GetMessage<StartGameMessage>().Send();
 					}
 					break;
 			}

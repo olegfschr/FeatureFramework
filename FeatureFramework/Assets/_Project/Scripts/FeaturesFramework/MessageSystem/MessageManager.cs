@@ -9,6 +9,7 @@ namespace MessageSystem
 	{
 		private static Dictionary<Type, HashSet<IMessageReceiver>> _messages;
 		private static HashSet<IMessageReceiver> _disabledReceivers;
+		private static Dictionary<Type, Queue<Message>> _messagePool;
 
 		/// <summary>
 		/// Subscribe object to the given message.
@@ -68,7 +69,8 @@ namespace MessageSystem
 				receiver.MessageReceived(message);
 			}
 		}
-		
+
+		#region Message Provider
 
 		/// <summary>
 		/// Gen number of listeners for given message.
@@ -77,6 +79,50 @@ namespace MessageSystem
 		/// <returns>Number of listeners.</returns>
 		public static int NumberOfListeners<T>() where T : Message 
 			=> _messages.ContainsKey(typeof(T)) ? _messages[typeof(T)].Count : -1;
+
+		/// <summary>
+		/// Generate a new message object or get one from pool.
+		/// </summary>
+		/// <typeparam name="T">Message type.</typeparam>
+		/// <returns>Message type.</returns>
+		public static T GetMessage<T>() where T : Message, new()
+		{
+			var messageType = typeof(T);
+			_messagePool ??= new Dictionary<Type, Queue<Message>>();
+
+			if (!_messagePool.ContainsKey(messageType) || _messagePool[messageType].Count == 0) return new T();
+
+			return _messagePool[messageType].Dequeue() as T;
+		}
+
+		/// <summary>
+		/// Recycle message by putting it to a pool.
+		/// </summary>
+		/// <param name="message">Message object.</param>
+		public static void RecycleMessage(Message message)
+		{
+			var messageType = message.GetType();
+
+			if (!_messagePool.ContainsKey(messageType)) _messagePool.Add(messageType, new Queue<Message>());
+
+			_messagePool[messageType].Enqueue(message);
+		}
+
+		/// <summary>
+		/// Clear cached messages for given type. Use if message shouldn't be used anymore.
+		/// </summary>
+		/// <typeparam name="T">Type of the message cache to clear.</typeparam>
+		public static void ClearMessageCache<T>() where T : Message
+		{
+			Type messageType = typeof(T);
+			if (_messagePool.ContainsKey(messageType))
+			{
+				_messagePool[messageType].Clear();
+			}
+		}
+
+		#endregion
+
 
 	}
 

@@ -22,7 +22,7 @@ namespace Features
 		/// </summary>
 		public virtual void Init()
 		{
-			MessageProvider.GetMessage<OnFeatureInitialisedMessage>().Send();
+			MessageManager.GetMessage<OnFeatureInitialisedMessage>().Send();
 		}
 		
 		/// <summary>

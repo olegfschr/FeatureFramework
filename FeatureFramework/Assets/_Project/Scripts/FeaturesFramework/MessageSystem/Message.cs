@@ -25,7 +25,7 @@ namespace MessageSystem
 		{
 			referenceCount--;
 
-			if (referenceCount == 0) MessageProvider.RecycleMessage(this);
+			if (referenceCount == 0) MessageManager.RecycleMessage(this);
 		}
 
 		/// <summary>
