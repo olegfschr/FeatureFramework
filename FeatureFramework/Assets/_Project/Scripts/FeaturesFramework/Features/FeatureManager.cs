@@ -18,9 +18,11 @@ namespace Features
 		{
 			_features = new List<Feature>();
 			
+			// Gather all types derived from 'Feature' and instantiate one of each.
 			System.Type[] types = Assembly.GetAssembly(typeof(Feature)).GetTypes();
 			foreach (var feature in types)
 			{
+				// Only consider children of 'Feature', also not 'Feature' itself.
 				if (feature.BaseType != typeof(Feature) || feature.IsAbstract) continue;
 				
 				_features.Add((Feature)System.Activator.CreateInstance(feature));
@@ -86,7 +88,7 @@ namespace Features
 				case OnFeatureInitialisedMessage:
 					_featuresInitialised--;
 
-					if (_featuresInitialised == 0)
+					if (_featuresInitialised == 0) // Start game only after every feature is done initializing.
 					{
 						MessageManager.StopReceivingMessage<OnFeatureInitialisedMessage>(this);
 						MessageManager.ClearMessageCache<OnFeatureInitialisedMessage>();

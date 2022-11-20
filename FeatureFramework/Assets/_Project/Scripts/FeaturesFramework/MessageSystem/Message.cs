@@ -7,7 +7,7 @@ namespace MessageSystem
 	/// </summary>
 	public abstract class Message
 	{
-		private int referenceCount;
+		private int _referenceCount;
 
 		/// <summary>
 		/// Initializes message.
@@ -15,7 +15,7 @@ namespace MessageSystem
 		/// <param name="numberOfReceivers">Number of subscribers to this message for reference counting.</param>
 		public void Init(int numberOfReceivers)
 		{
-			referenceCount = numberOfReceivers;
+			_referenceCount = numberOfReceivers;
 		}
 
 		/// <summary>
@@ -23,9 +23,9 @@ namespace MessageSystem
 		/// </summary>
 		public void OnDoneUsing()
 		{
-			referenceCount--;
+			_referenceCount--;
 
-			if (referenceCount == 0) MessageManager.RecycleMessage(this);
+			if (_referenceCount == 0) MessageManager.RecycleMessage(this);
 		}
 
 		/// <summary>
