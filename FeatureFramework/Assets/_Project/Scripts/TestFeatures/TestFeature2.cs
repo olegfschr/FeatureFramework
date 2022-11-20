@@ -1,5 +1,6 @@
 // (c) 2022 Oleg Fischer
 
+using System.Threading.Tasks;
 using Features;
 using MessageSystem;
 using UnityEngine;
@@ -8,11 +9,17 @@ public class TestFeature2 : Feature, IMessageReceiver
 {
 	public override bool NeedsUpdate() => false;
 	
-	public override void Init()
+	public override async void Init()
 	{
-		Debug.Log("Init Feature 2");
 		MessageManager.StartReceivingMessage<TestMessage>(this);
-		base.Init();
+		await DelayedInit();
+	}
+
+	private async Task DelayedInit()
+	{
+		await Task.Delay(5000);
+		Debug.Log("Init Feature 2");
+		MessageManager.GetMessage<OnFeatureInitialisedMessage>().Send();
 	}
 
 	public override void Cleanup()
