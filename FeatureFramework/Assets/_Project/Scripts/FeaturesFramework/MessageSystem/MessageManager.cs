@@ -8,8 +8,8 @@ namespace MessageSystem
 	public static class MessageManager
 	{
 		private static Dictionary<Type, HashSet<IMessageReceiver>> _messages;
-		private static HashSet<IMessageReceiver> _disabledReceivers;
 		private static Dictionary<Type, Queue<Message>> _messagePool;
+		private static readonly List<IMessageReceiver> _sendMessageIteratingContainer = new ();
 
 		/// <summary>
 		/// Subscribe object to the given message.
@@ -29,7 +29,6 @@ namespace MessageSystem
 				_messages[messageType].Add(receiver);
 
 			}
-			else if (_disabledReceivers != null && _disabledReceivers.Contains(receiver)) _disabledReceivers.Remove(receiver);
 		}
 
 		/// <summary>
@@ -39,8 +38,12 @@ namespace MessageSystem
 		/// <typeparam name="T">Message type, which object should stop receiving.</typeparam>
 		public static void StopReceivingMessage<T>(IMessageReceiver receiver) where T : Message
 		{
-			_disabledReceivers ??= new HashSet<IMessageReceiver>();
-			_disabledReceivers.Add(receiver);
+			var messageType = typeof(T);
+			if (_messages.ContainsKey(messageType))
+			{
+				_messages[messageType].Remove(receiver);
+			}
+			
 		}
 
 		/// <summary>
@@ -50,8 +53,12 @@ namespace MessageSystem
 		public static void StopReceivingAllMessages(IMessageReceiver receiver)
 		{
 			foreach (var messageList in _messages.Values)
+			{
 				if (messageList.Contains(receiver))
+				{
 					messageList.Remove(receiver);
+				}
+			}
 		}
 
 		/// <summary>
@@ -61,12 +68,16 @@ namespace MessageSystem
 		public static void SendMessage(Message message)
 		{
 			if (_messages == null || !_messages.ContainsKey(message.GetType())) return;
-
+			
 			message.Init(_messages[message.GetType()].Count);
-			foreach (var receiver in _messages[message.GetType()])
+			
+			_sendMessageIteratingContainer.Clear();
+			_sendMessageIteratingContainer.AddRange(_messages[message.GetType()]);
+			
+			//foreach (var receiver in _sendMessageIteratingContainer)
+			for (int i = 0; i < +_sendMessageIteratingContainer.Count; i++)
 			{
-				if (_disabledReceivers != null && _disabledReceivers.Contains(receiver)) continue;
-				receiver.MessageReceived(message);
+				_sendMessageIteratingContainer[i].MessageReceived(message);
 			}
 		}
 
@@ -119,11 +130,10 @@ namespace MessageSystem
 			{
 				_messagePool[messageType].Clear();
 			}
+			
+			
 		}
-
 		#endregion
-
-
 	}
 
 }
