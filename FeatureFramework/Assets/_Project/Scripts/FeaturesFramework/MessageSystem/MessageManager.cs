@@ -9,7 +9,10 @@ namespace MessageSystem
 	{
 		private static Dictionary<Type, HashSet<IMessageReceiver>> _messages;
 		private static Dictionary<Type, Queue<Message>> _messagePool;
-		private static readonly List<IMessageReceiver> _sendMessageIteratingContainer = new ();
+		private static Queue<Message> _messagesQueue = new();
+		private static Queue<Type> _messagesToRemove = new();
+		private static Queue<IMessageReceiver> _receiversToRemove = new();
+		private static Queue<IMessageReceiver> _receiversToCleanup = new ();
 
 		/// <summary>
 		/// Subscribe object to the given message.
@@ -41,7 +44,13 @@ namespace MessageSystem
 			var messageType = typeof(T);
 			if (_messages.ContainsKey(messageType))
 			{
-				_messages[messageType].Remove(receiver);
+				_messagesToRemove.Enqueue(messageType);
+				_receiversToRemove.Enqueue( receiver);
+
+				if (_receiversToRemove.Count == 1 && _messagesQueue.Count == 0 && _receiversToCleanup.Count == 0)
+				{
+					HandleMessages();
+				}
 			}
 			
 		}
@@ -52,12 +61,11 @@ namespace MessageSystem
 		/// <param name="receiver">Object which should stop receiving all messages.</param>
 		public static void StopReceivingAllMessages(IMessageReceiver receiver)
 		{
-			foreach (var messageList in _messages.Values)
+			_receiversToCleanup.Enqueue(receiver);
+
+			if (_receiversToCleanup.Count == 1 && _messagesQueue.Count == 0 && _receiversToRemove.Count == 0)
 			{
-				if (messageList.Contains(receiver))
-				{
-					messageList.Remove(receiver);
-				}
+				HandleMessages();
 			}
 		}
 
@@ -71,13 +79,55 @@ namespace MessageSystem
 			
 			message.Init(_messages[message.GetType()].Count);
 			
-			_sendMessageIteratingContainer.Clear();
-			_sendMessageIteratingContainer.AddRange(_messages[message.GetType()]);
-			
-			//foreach (var receiver in _sendMessageIteratingContainer)
-			for (int i = 0; i < +_sendMessageIteratingContainer.Count; i++)
+			_messagesQueue.Enqueue(message);
+
+			if (_messagesQueue.Count == 1 && _receiversToCleanup.Count == 0 && _receiversToRemove.Count == 0)
 			{
-				_sendMessageIteratingContainer[i].MessageReceived(message);
+				HandleMessages();
+			}
+		}
+
+		/// <summary>
+		/// Handle all message related activities such as sending messages,
+		/// and removing listeners in the same function to prevent data being
+		/// accessed at the same time
+		/// </summary>
+		private static void HandleMessages()
+		{
+			// Handle sending messages
+			while (_messagesQueue.Count > 0)
+			{
+				var message = _messagesQueue.Peek();
+				foreach (var receiver in _messages[message.GetType()])
+				{
+					receiver.MessageReceived(message);
+				}
+
+				_messagesQueue.Dequeue();
+			}
+
+			// Handle removing single receivers for a message
+			while (_receiversToRemove.Count > 0)
+			{
+				var receiver = _receiversToRemove.Peek();
+				var messageType = _messagesToRemove.Dequeue();
+				_messages[messageType].Remove(receiver);
+				_receiversToRemove.Dequeue();
+			}
+
+			// Handling removing a receiver for all messages 
+			while (_receiversToCleanup.Count > 0)
+			{
+				var receiver = _receiversToCleanup.Peek();
+				foreach (var messageList in _messages.Values)
+				{
+					if (messageList.Contains(receiver))
+					{
+						messageList.Remove(receiver);
+					}
+				}
+
+				_receiversToCleanup.Dequeue();
 			}
 		}
 
@@ -130,8 +180,6 @@ namespace MessageSystem
 			{
 				_messagePool[messageType].Clear();
 			}
-			
-			
 		}
 		#endregion
 	}
